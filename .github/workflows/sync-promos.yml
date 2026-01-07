@@ -24,7 +24,8 @@ jobs:
       - name: Install deps
         run: |
           npm init -y
-          npm i cheerio
+          npm i playwright
+          npx playwright install --with-deps chromium
 
       - name: Run sync
         run: node scripts/sync-promos.mjs
@@ -57,9 +58,7 @@ jobs:
             lines.push(``);
             lines.push(`Current promos (title — promocode):`);
             lines.push(``);
-            for (const p of promos) {
-              lines.push(`- ${(p.title || '').trim()} — ${(p.promocode || '').trim()}`);
-            }
+            for (const p of promos) lines.push(`- ${(p.title||'').trim()} — ${(p.promocode||'').trim()}`);
 
             await github.rest.issues.create({
               owner: context.repo.owner,
