@@ -94,20 +94,43 @@
     </section>
 
     <!-- BANNER SLOT (TOP) -->
-    <section class="container">
-      <div class="banner-slot">
-        <p class="slot-title">Featured Offer</p>
+   <div class="banner-slot">
+  <p class="slot-title">Featured Offer</p>
 
-        <!-- Paste ONE banner script here (optional). Example: #1 or any other. -->
-        <script type="text/javascript" src="https://js.revmasters.com/javascript.php?prefix=qAqHODIbs_1D3TEmsPWI0WNd7ZgqdRLk&amp;media=1100&amp;campaign=4"></script>
+  <div id="banner-fallback" class="noscript" style="display:none;">
+    Banner blocked by your browser. Use the button below to claim the current offer.
+    <div style="margin-top:10px;">
+      <a class="btn btn-primary btn-block" href="https://record.revmasters.com/_qAqHODIbs_1D3TEmsPWI0WNd7ZgqdRLk/4/" rel="nofollow sponsored noopener" target="_blank">
+        Claim BetUS Bonus
+      </a>
+    </div>
+  </div>
 
-        <noscript>
-          <div class="noscript">
-            JavaScript is required to display this banner. Use the “Claim BetUS Bonus” button instead.
-          </div>
-        </noscript>
-      </div>
-    </section>
+  <div id="banner-mount">
+    <script type="text/javascript" src="https://js.revmasters.com/javascript.php?prefix=qAqHODIbs_1D3TEmsPWI0WNd7ZgqdRLk&amp;media=1100&amp;campaign=4"></script>
+  </div>
+
+  <noscript>
+    <div class="noscript">
+      JavaScript is required to display this banner. Use the “Claim BetUS Bonus” button instead.
+    </div>
+  </noscript>
+
+  <script>
+    // If the banner script is blocked, show fallback after a short delay
+    setTimeout(function () {
+      const mount = document.getElementById("banner-mount");
+      const fallback = document.getElementById("banner-fallback");
+      if (!mount) return;
+
+      // If the mount has no rendered content, show fallback
+      if (mount.innerText.trim().length === 0 && mount.querySelectorAll("img, iframe, a").length === 0) {
+        fallback.style.display = "block";
+      }
+    }, 1500);
+  </script>
+</div>
+
 
     <!-- WHY -->
     <section class="section">
