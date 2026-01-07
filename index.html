@@ -268,7 +268,7 @@
     </section>
 
     <!-- BONUS -->
-  <section id="bonus" class="section alt">
+ <section id="bonus" class="section alt">
   <div class="container">
     <h2 class="section-title">Latest Bonuses and Promotions</h2>
     <p class="section-subtitle">
@@ -276,10 +276,22 @@
       <span id="promo-updated" class="muted"></span>
     </p>
 
-    <!-- If promos.json is present, cards render here -->
+    <!-- Filter pills (operator-like) -->
+    <div class="promo-filters" aria-label="Promotion filters">
+      <button class="pill is-active" type="button" data-filter="all">All</button>
+      <button class="pill" type="button" data-filter="sign-up">sign-up</button>
+      <button class="pill" type="button" data-filter="sportsbook">sportsbook</button>
+      <button class="pill" type="button" data-filter="casino">casino</button>
+      <button class="pill" type="button" data-filter="crypto">crypto</button>
+      <button class="pill" type="button" data-filter="re-up">re-up</button>
+
+      <span id="promo-count" class="promo-count" aria-live="polite"></span>
+    </div>
+
+    <!-- Cards render here -->
     <div id="promo-grid" class="promo-grid"></div>
 
-    <!-- Always-available official fallback (hidden if promos load successfully) -->
+    <!-- Official fallback (hidden unless promos fail) -->
     <div id="promo-official" class="promo-official" style="display:none;">
       <div class="promo-official-card">
         <h3>View Official Promotions (Always Current)</h3>
@@ -287,13 +299,9 @@
           If synced promos are unavailable, use the button below to view the latest offers and terms directly on BetUS.
         </p>
 
-        <!-- Optional: drop 1–2 RevMasters banner scripts here (recommended) -->
         <div class="banner-slot banner-slot--compact">
           <p class="slot-title">Featured Offer</p>
-
-          <!-- Your existing banner script example -->
           <script type="text/javascript" src="https://js.revmasters.com/javascript.php?prefix=qAqHODIbs_1D3TEmsPWI0WNd7ZgqdRLk&amp;media=1100&amp;campaign=4"></script>
-
           <noscript>
             <div class="noscript">
               JavaScript is required to display this banner. Use the button below to view promotions.
@@ -315,6 +323,7 @@
     </div>
   </div>
 </section>
+
 
 
 
@@ -345,31 +354,93 @@
       </div>
     </div>
   </footer>
-  <script>
+ <script>
   (async function () {
     const AFF_URL = "https://record.revmasters.com/_qAqHODIbs_1D3TEmsPWI0WNd7ZgqdRLk/4/";
 
     const updatedEl = document.getElementById("promo-updated");
     const grid = document.getElementById("promo-grid");
     const official = document.getElementById("promo-official");
+    const pills = Array.from(document.querySelectorAll(".promo-filters .pill"));
+    const countEl = document.getElementById("promo-count");
 
-    // If any of these are missing, fail silently (prevents JS from breaking your page)
-    if (!updatedEl || !grid || !official) return;
+    if (!updatedEl || !grid || !official || !countEl || pills.length === 0) return;
 
-    // Initial loading state (never blank)
+    let allPromos = [];
+    let activeFilter = "all";
+
+    function normTag(t) {
+      return String(t || "").trim().toLowerCase();
+    }
+
+    function matchesFilter(promo, filter) {
+      if (filter === "all") return true;
+
+      const tags = Array.isArray(promo.tags) ? promo.tags.map(normTag) : [];
+      return tags.includes(filter);
+    }
+
+    function setActivePill(filter) {
+      activeFilter = filter;
+      for (const btn of pills) {
+        btn.classList.toggle("is-active", btn.dataset.filter === filter);
+      }
+    }
+
+    function render() {
+      const filtered = allPromos.filter(p => matchesFilter(p, activeFilter));
+
+      countEl.textContent = `Showing ${filtered.length} of ${allPromos.length}`;
+
+      grid.innerHTML = "";
+
+      for (const p of filtered) {
+        const card = document.createElement("article");
+        card.className = "promo-card";
+
+        const tagsArr = Array.isArray(p.tags) ? p.tags : [];
+        const bulletsArr = Array.isArray(p.bullets) ? p.bullets : [];
+
+        const tags = tagsArr.map(t => `<span class="tag">${t}</span>`).join("");
+        const bullets = bulletsArr.map(b => `<li>${b}</li>`).join("");
+
+        card.innerHTML = `
+          ${tags ? `<div class="promo-tags">${tags}</div>` : ``}
+          <h3>${p.title || ""}</h3>
+          ${bullets ? `<ul>${bullets}</ul>` : ``}
+          <div class="promo-code">Promocode: <strong>${(p.promocode || "").trim()}</strong></div>
+          <a class="btn btn-primary btn-block" href="${AFF_URL}" rel="nofollow sponsored noopener" target="_blank">
+            Join Now
+          </a>
+        `;
+
+        grid.appendChild(card);
+      }
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <article class="promo-card promo-card--error">
+            <h3>No promotions in this category</h3>
+            <p class="promo-muted">Try another filter or view the official promotions page.</p>
+            <a class="btn btn-primary btn-block" href="${AFF_URL}" rel="nofollow sponsored noopener" target="_blank">
+              View Promotions on BetUS
+            </a>
+          </article>
+        `;
+      }
+    }
+
+    // Loading state
     grid.innerHTML = `
       <article class="promo-card promo-card--loading">
         <h3>Loading promotions…</h3>
-        <p class="promo-muted">
-          If this does not load, we’ll show the official promotions page link automatically.
-        </p>
+        <p class="promo-muted">If this does not load, we’ll show the official promotions page link automatically.</p>
       </article>
     `;
 
     try {
       const jsonUrl = new URL("data/promos.json", window.location.href).toString();
       const res = await fetch(jsonUrl, { cache: "no-store" });
-
       if (!res.ok) throw new Error(`promos.json fetch failed: HTTP ${res.status}`);
 
       const data = await res.json();
@@ -381,37 +452,34 @@
       const promos = Array.isArray(data.promos) ? data.promos : [];
       if (promos.length === 0) throw new Error("promos.json is empty");
 
-      // Render promos
-      grid.innerHTML = "";
+      // Normalize tags to match filter keys (lowercase)
+      allPromos = promos.map(p => ({
+        ...p,
+        tags: Array.isArray(p.tags) ? p.tags.map(t => String(t).toLowerCase()) : []
+      }));
+
       official.style.display = "none";
 
-      for (const p of promos) {
-        const card = document.createElement("article");
-        card.className = "promo-card";
-
-        const tags = (p.tags || []).map(t => `<span class="tag">${t}</span>`).join("");
-        const bullets = (p.bullets || []).map(b => `<li>${b}</li>`).join("");
-
-        card.innerHTML = `
-          <div class="promo-tags">${tags}</div>
-          <h3>${p.title || ""}</h3>
-          <ul>${bullets}</ul>
-          <div class="promo-code">Promocode: <strong>${p.promocode || ""}</strong></div>
-          <a class="btn btn-primary btn-block" href="${AFF_URL}" rel="nofollow sponsored noopener" target="_blank">
-            Join Now
-          </a>
-        `;
-
-        grid.appendChild(card);
+      // Wire pill clicks
+      for (const btn of pills) {
+        btn.addEventListener("click", () => {
+          setActivePill(btn.dataset.filter);
+          render();
+        });
       }
+
+      setActivePill("all");
+      render();
     } catch (err) {
       console.error(err);
       grid.innerHTML = "";
       official.style.display = "block";
       updatedEl.textContent = "Sync status: unavailable";
+      countEl.textContent = "";
     }
   })();
 </script>
+
 
 </body>
 </html>
