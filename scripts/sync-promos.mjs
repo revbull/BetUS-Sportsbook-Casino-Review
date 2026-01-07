@@ -14,12 +14,9 @@ function clean(s) {
 
   await page.goto(SOURCE_URL, { waitUntil: "networkidle", timeout: 120000 });
 
-  // Attempt to find promo “cards” in a generic way.
-  // This is robust to minor layout changes but may need adjustment if BetUS redesigns.
   const promos = await page.evaluate(() => {
     const clean = (s) => (s || "").replace(/\s+/g, " ").trim();
 
-    // Heuristic: locate repeating promo blocks by looking for elements containing "Promocode:"
     const codeNodes = Array.from(document.querySelectorAll("*"))
       .filter((el) => el.childElementCount === 0 && /Promocode\s*:?/i.test(el.textContent || ""));
 
@@ -27,10 +24,8 @@ function clean(s) {
     const cards = [];
 
     for (const node of codeNodes) {
-      // walk up to a reasonable container
       let card = node.closest("article, section, div");
       for (let i = 0; i < 6 && card && card.parentElement; i++) {
-        // prefer a container with multiple text lines
         if ((card.innerText || "").split("\n").length >= 4) break;
         card = card.parentElement;
       }
@@ -42,16 +37,19 @@ function clean(s) {
       if (uniqueCards.has(raw)) continue;
       uniqueCards.add(raw);
 
-      // Extract title: first line that isn't a tag line
-      const lines = (card.innerText || "").split("\n").map(clean).filter(Boolean);
+      const lines = (card.innerText || "")
+        .split("\n")
+        .map(clean)
+        .filter(Boolean);
 
-      // tags often appear as short uppercase words; capture any that match known taxonomy
       const knownTags = new Set(["SIGN-UP", "SPORTSBOOK", "CASINO", "CRYPTO", "RE-UP"]);
-      const tags = lines.filter((l) => knownTags.has(l.toUpperCase())).map((l) => l.toUpperCase());
+      const tags = lines
+        .filter((l) => knownTags.has(l.toUpperCase()))
+        .map((l) => l.toUpperCase());
 
-      const title = lines.find((l) => l.length >= 6 && !knownTags.has(l.toUpperCase()) && !/^Promocode/i.test(l)) || "";
+      const title =
+        lines.find((l) => l.length >= 6 && !knownTags.has(l.toUpperCase()) && !/^Promocode/i.test(l)) || "";
 
-      // bullets: capture lines after title until "Promocode"
       const promoIdx = lines.findIndex((l) => /^Promocode/i.test(l));
       const titleIdx = lines.indexOf(title);
 
@@ -64,13 +62,11 @@ function clean(s) {
       const codeMatch = promoLine.match(/Promocode\s*:?\s*([A-Z0-9]+)/i);
       const promocode = codeMatch ? codeMatch[1].toUpperCase() : "";
 
-      // Avoid garbage entries
       if (!title || !promocode) continue;
 
       cards.push({ title, tags: Array.from(new Set(tags)), bullets, promocode });
     }
 
-    // De-duplicate by promocode
     const byCode = new Map();
     for (const c of cards) byCode.set(c.promocode, c);
 
