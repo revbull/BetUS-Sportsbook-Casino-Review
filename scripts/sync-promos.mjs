@@ -1,5 +1,5 @@
+import { chromium } from "playwright";
 import fs from "node:fs";
-import * as cheerio from "cheerio";
 
 const SOURCE_URL = "https://www.betus.com.pa/promotions/";
 const OUT_PATH = "data/promos.json";
@@ -8,145 +8,142 @@ function clean(s) {
   return (s || "").replace(/\s+/g, " ").trim();
 }
 
-function extractPromosFromTextBlock(text) {
-  // Split into logical lines; preserve order.
-  const lines = text
-    .split("\n")
-    .map(clean)
-    .filter(Boolean);
-
-  const knownTags = new Set(["SIGN-UP", "SPORTSBOOK", "CASINO", "CRYPTO", "RE-UP"]);
-  const tags = lines
-    .filter((l) => knownTags.has(l.toUpperCase()))
-    .map((l) => l.toUpperCase());
-
-  // Find promo code line and actual code
-  const promoLine = lines.find((l) => /^Promocode\b/i.test(l)) || "";
-  const codeMatch = promoLine.match(/Promocode\s*:?\s*([A-Z0-9]+)/i);
-  const promocode = codeMatch ? codeMatch[1].toUpperCase() : "";
-
-  // Title: first substantial line that is not a tag and not the promocode line
-  const title =
-    lines.find(
-      (l) =>
-        l.length >= 6 &&
-        !knownTags.has(l.toUpperCase()) &&
-        !/^Promocode\b/i.test(l)
-    ) || "";
-
-  // Bullets: everything between title and promo line, excluding tags
-  const titleIdx = lines.indexOf(title);
-  const promoIdx = lines.findIndex((l) => /^Promocode\b/i.test(l));
-  const bullets = lines
-    .slice(titleIdx + 1, promoIdx >= 0 ? promoIdx : undefined)
-    .filter((l) => !knownTags.has(l.toUpperCase()))
-    .filter((l) => l.length >= 3);
-
-  if (!title || !promocode) return null;
-
-  return {
-    title,
-    tags: Array.from(new Set(tags)),
-    bullets,
-    promocode
-  };
-}
-
-async function fetchWithTimeout(url, ms = 90000) {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), ms);
-
-  try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        // CI-friendly headers
-        "user-agent":
-          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
-        "accept":
-          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "accept-language": "en-US,en;q=0.9"
-      }
-    });
-
-    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-    return await res.text();
-  } finally {
-    clearTimeout(t);
-  }
-}
-
 (async () => {
-  // 2 attempts (BetUS can be intermittently slow)
-  let html = "";
-  let lastErr = null;
-
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      html = await fetchWithTimeout(SOURCE_URL, 90000);
-      break;
-    } catch (e) {
-      lastErr = e;
-      if (attempt === 2) throw e;
-    }
-  }
-
-  const $ = cheerio.load(html);
-
-  // Heuristic: find containers that include “Promocode”
-  // We search for elements containing the text, then walk up to a reasonable card container.
-  const candidates = new Set();
-
-  $(":contains('Promocode')").each((_, el) => {
-    const node = $(el);
-
-    // Climb up a few levels to get a full promo “card”
-    let card = node.closest("article, section, div");
-    for (let i = 0; i < 6 && card.length; i++) {
-      const t = clean(card.text());
-      if (t.split("Promocode").length >= 2 || t.length > 120) break;
-      card = card.parent();
-    }
-
-    if (card && card.length) {
-      const t = clean(card.text());
-      if (t.includes("Promocode")) candidates.add(t);
-    }
+  const browser = await chromium.launch({
+    headless: true
   });
 
-  const promos = [];
-  for (const text of candidates) {
-    // Reconstruct line breaks from punctuation by reintroducing separators
-    // so extraction is more stable.
-    const block = text
-      .replace(/(SIGN-UP|SPORTSBOOK|CASINO|CRYPTO|RE-UP)/g, "\n$1\n")
-      .replace(/Promocode\s*:?\s*/gi, "\nPromocode: ")
-      .replace(/\.\s+/g, ".\n")
-      .replace(/•/g, "\n");
+  const context = await browser.newContext({
+    locale: "en-US",
+    timezoneId: "America/New_York",
+    userAgent:
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    viewport: { width: 1365, height: 768 }
+  });
 
-    const promo = extractPromosFromTextBlock(block);
-    if (promo) promos.push(promo);
-  }
+  const page = await context.newPage();
 
-  // De-dupe by promocode
-  const byCode = new Map();
-  for (const p of promos) byCode.set(p.promocode, p);
+  // Reduce background noise that can keep the network “busy”
+  await page.route("**/*", (route) => {
+    const url = route.request().url();
+    const type = route.request().resourceType();
+
+    // Block common analytics/ad/tracker resources (safe for content scraping)
+    if (
+      type === "font" ||
+      url.includes("googletagmanager") ||
+      url.includes("google-analytics") ||
+      url.includes("doubleclick") ||
+      url.includes("facebook") ||
+      url.includes("hotjar")
+    ) {
+      return route.abort();
+    }
+    return route.continue();
+  });
+
+  // IMPORTANT: do NOT use networkidle
+  await page.goto(SOURCE_URL, { waitUntil: "domcontentloaded", timeout: 120000 });
+
+  // Wait for promo content signal
+  // If BetUS changes wording later, adjust this to a stable selector or different keyword.
+  await page.waitForSelector("text=/Promocode\\s*:?/i", { timeout: 90000 });
+
+  // Give the page a moment to render all cards (common on promo grids)
+  await page.waitForTimeout(2500);
+
+  const promos = await page.evaluate(() => {
+    const clean = (s) => (s || "").replace(/\s+/g, " ").trim();
+    const knownTags = new Set(["SIGN-UP", "SPORTSBOOK", "CASINO", "CRYPTO", "RE-UP"]);
+
+    // Find any element containing “Promocode”, then climb to a card container
+    const codeNodes = Array.from(document.querySelectorAll("*")).filter(
+      (el) => el.childElementCount === 0 && /Promocode\s*:?/i.test(el.textContent || "")
+    );
+
+    const candidates = [];
+    const seen = new Set();
+
+    for (const node of codeNodes) {
+      let card = node.closest("article, section, div");
+      for (let i = 0; i < 7 && card && card.parentElement; i++) {
+        const lines = (card.innerText || "").split("\n").map(clean).filter(Boolean);
+        if (lines.length >= 4) break;
+        card = card.parentElement;
+      }
+      if (!card) continue;
+
+      const text = (card.innerText || "").trim();
+      if (!text || text.length < 60) continue;
+
+      if (seen.has(text)) continue;
+      seen.add(text);
+      candidates.push(text);
+    }
+
+    const promos = [];
+
+    for (const raw of candidates) {
+      const lines = raw
+        .split("\n")
+        .map(clean)
+        .filter(Boolean);
+
+      const tags = lines
+        .filter((l) => knownTags.has(l.toUpperCase()))
+        .map((l) => l.toUpperCase());
+
+      const promoLine = lines.find((l) => /^Promocode\b/i.test(l)) || "";
+      const codeMatch = promoLine.match(/Promocode\s*:?\s*([A-Z0-9]+)/i);
+      const promocode = codeMatch ? codeMatch[1].toUpperCase() : "";
+
+      const title =
+        lines.find(
+          (l) =>
+            l.length >= 6 &&
+            !knownTags.has(l.toUpperCase()) &&
+            !/^Promocode\b/i.test(l)
+        ) || "";
+
+      const titleIdx = lines.indexOf(title);
+      const promoIdx = lines.findIndex((l) => /^Promocode\b/i.test(l));
+
+      const bullets = lines
+        .slice(titleIdx + 1, promoIdx >= 0 ? promoIdx : undefined)
+        .filter((l) => !knownTags.has(l.toUpperCase()))
+        .filter((l) => l.length >= 3);
+
+      if (!title || !promocode) continue;
+
+      promos.push({
+        title,
+        tags: Array.from(new Set(tags)),
+        bullets,
+        promocode
+      });
+    }
+
+    // De-dupe by promocode
+    const byCode = new Map();
+    for (const p of promos) byCode.set(p.promocode, p);
+    return Array.from(byCode.values());
+  });
+
+  await browser.close();
 
   const payload = {
     lastUpdatedUtc: new Date().toISOString(),
     source: SOURCE_URL,
-    promos: Array.from(byCode.values())
+    promos
   };
 
   fs.mkdirSync("data", { recursive: true });
   fs.writeFileSync(OUT_PATH, JSON.stringify(payload, null, 2), "utf8");
 
-  console.log(`Saved ${payload.promos.length} promos to ${OUT_PATH}`);
+  console.log(`Saved ${promos.length} promos to ${OUT_PATH}`);
 
-  // Fail loudly if we extracted nothing (usually indicates blocking or HTML changed)
-  if (payload.promos.length === 0) {
-    throw new Error(
-      "Extracted 0 promos. BetUS page structure may have changed or the request was blocked."
-    );
+  if (promos.length === 0) {
+    throw new Error("Extracted 0 promos. The page likely changed structure or is blocking automation.");
   }
 })();
+
