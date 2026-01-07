@@ -3,6 +3,66 @@
   "source": "https://www.betus.com.pa/promotions/",
   "promos": [
     {
+      "title": "125% Welcome Bonus on Your First 3 Deposits",
+      "tags": ["SIGN-UP", "SPORTSBOOK"],
+      "bullets": [
+        "100% Sports bonus + 25% Casino bonus",
+        "Minimum deposit: $100",
+        "14× rollover on sports OR 18× rollover on crypto deposits"
+      ],
+      "promocode": "JOIN125"
+    },
+    {
+      "title": "200% Crypto Welcome Bonus",
+      "tags": ["SIGN-UP", "SPORTSBOOK", "CRYPTO"],
+      "bullets": [
+        "200% crypto welcome bonus on your first crypto deposit",
+        "Minimum deposit: $100",
+        "18× rollover on sports"
+      ],
+      "promocode": "JOIN200"
+    },
+    {
+      "title": "200% Casino Welcome Bonus",
+      "tags": ["SIGN-UP", "CASINO"],
+      "bullets": [
+        "200% casino welcome bonus up to $4,000 on your first deposit",
+        "Minimum deposit: $100",
+        "35× rollover on casino games for release"
+      ],
+      "promocode": "CAS200"
+    },
+    {
+      "title": "250% Casino Crypto Welcome Bonus",
+      "tags": ["SIGN-UP", "CASINO", "CRYPTO"],
+      "bullets": [
+        "250% casino crypto welcome bonus up to $5,000 on your first deposit",
+        "Minimum deposit: $100",
+        "40× rollover on casino slots games for release and cashout"
+      ],
+      "promocode": "CAS250"
+    },
+    {
+      "title": "200% Bonus on Your First Crypto Deposit",
+      "tags": ["SIGN-UP", "SPORTSBOOK", "CASINO", "CRYPTO"],
+      "bullets": [
+        "200% bonus on your first crypto deposit",
+        "Minimum deposit: $100",
+        "18× rollover on sports"
+      ],
+      "promocode": "FIRST200"
+    },
+    {
+      "title": "225% Welcome Bonus",
+      "tags": ["SIGN-UP", "SPORTSBOOK"],
+      "bullets": [
+        "100% Sports bonus + 25% Casino bonus",
+        "Extra 100% bonus",
+        "Minimum deposit: $100"
+      ],
+      "promocode": "JOIN225"
+    },
+    {
       "title": "75% Sports Crypto Re-up Bonus",
       "tags": ["SPORTSBOOK", "CRYPTO", "RE-UP"],
       "bullets": [
@@ -24,12 +84,12 @@
     },
     {
       "title": "100% Crypto Re-up Bonus",
-      "tags": ["CRYPTO", "SPORTSBOOK", "RE-UP"],
+      "tags": ["SPORTSBOOK", "CRYPTO", "RE-UP"],
       "bullets": [
-        "100% bonus up to $1,500",
+        "100% re-up bonus up to $1,500",
         "Applies to your next two deposits",
         "Minimum deposit: $100",
-        "14× rollover on sports wagers"
+        "14× rollover on sports"
       ],
       "promocode": "CRYP2X"
     },
@@ -37,22 +97,33 @@
       "title": "100% Casino Re-up Bonus",
       "tags": ["CASINO", "RE-UP"],
       "bullets": [
-        "100% Casino bonus up to $2,000",
+        "100% casino re-up bonus up to $2,000",
         "Minimum deposit: $50",
-        "35× rollover on casino games before cashout"
+        "35× rollover on casino games for release and cashout"
       ],
       "promocode": "CASINO100"
     },
     {
       "title": "10% Cash Bonus + 20% Casino Bonus",
-      "tags": ["SPORTSBOOK", "CASINO"],
+      "tags": ["SPORTSBOOK", "CASINO", "RE-UP"],
       "bullets": [
-        "10% cash bonus + 20% casino bonus",
-        "Bonus valid up to $750",
+        "10% cash bonus + 20% casino bonus up to $750",
         "Maximum deposit: $2,500",
-        "3× rollover applies to the cash bonus"
+        "3× rollover applies to the 10% cash bonus"
       ],
       "promocode": "10CASH"
+    },
+    {
+      "title": "20% Crypto Cash Bonus",
+      "tags": ["SIGN-UP", "CRYPTO"],
+      "bullets": [
+        "20% cash bonus up to $500 on your crypto deposit",
+        "Maximum deposit: $2,500",
+        "6× rollover applies to the 20% cash bonus",
+        "Applies to both new and existing accounts"
+      ],
+      "promocode": "20CASH"
     }
   ]
 }
+
