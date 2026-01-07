@@ -532,6 +532,73 @@ h1{
   color: rgba(255,255,255,0.70);
   font-size: 13.5px;
 }
+.muted{
+  color: rgba(255,255,255,0.70);
+  font-weight: 600;
+  margin-left: 8px;
+  font-size: 12.5px;
+}
+
+.promo-grid{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 860px){
+  .promo-grid{ grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1120px){
+  .promo-grid{ grid-template-columns: repeat(3, 1fr); }
+}
+
+.promo-card{
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 22px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+}
+
+.promo-tags{ display:flex; flex-wrap:wrap; gap:8px; }
+.tag{
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.55);
+  font-weight: 900;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+}
+
+.promo-card h3{ margin: 0 0 10px; font-size: 16px; }
+.promo-card ul{ margin: 0 0 12px; padding-left: 18px; color: rgba(255,255,255,0.70); }
+.promo-code{ margin: 6px 0 12px; color: rgba(255,255,255,0.55); font-weight: 700; }
+
+.promo-card--loading h3{ margin: 0 0 8px; }
+.promo-muted{
+  margin: 0 0 14px;
+  color: rgba(255,255,255,0.70);
+  font-size: 13.5px;
+}
+
+.promo-official{
+  margin-top: 10px;
+}
+
+.promo-official-card{
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 22px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+}
+
+.promo-official-card h3{
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
 
 
 
