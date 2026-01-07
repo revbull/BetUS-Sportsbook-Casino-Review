@@ -52,98 +52,101 @@ function clean(s) {
   // Give the page a moment to render all cards (common on promo grids)
   await page.waitForTimeout(2500);
 
-  const promos = await page.evaluate(() => {
-    const clean = (s) => (s || "").replace(/\s+/g, " ").trim();
-    const knownTags = new Set(["SIGN-UP", "SPORTSBOOK", "CASINO", "CRYPTO", "RE-UP"]);
+ const promos = await page.evaluate(() => {
+  const clean = (s) => (s || "").replace(/\s+/g, " ").trim();
+  const knownTags = new Set(["SIGN-UP", "SPORTSBOOK", "CASINO", "CRYPTO", "RE-UP"]);
 
-    // Find any element containing “Promocode”, then climb to a card container
-    const codeNodes = Array.from(document.querySelectorAll("*")).filter(
-      (el) => el.childElementCount === 0 && /Promocode\s*:?/i.test(el.textContent || "")
+  // IMPORTANT: do NOT require leaf nodes; promos often have nested spans/buttons
+  const nodes = Array.from(document.querySelectorAll("*")).filter((el) =>
+    /Promocode\s*/i.test(el.textContent || "")
+  );
+
+  const candidates = [];
+  const seen = new Set();
+
+  function looksLikePromoCard(text) {
+    const t = text.toLowerCase();
+    // Heuristics present in BetUS promo tiles
+    return (
+      t.includes("promocode") &&
+      (t.includes("join now") || t.includes("bonus details")) &&
+      text.length >= 120 &&
+      text.length <= 2000
     );
-
-    const candidates = [];
-    const seen = new Set();
-
-    for (const node of codeNodes) {
-      let card = node.closest("article, section, div");
-      for (let i = 0; i < 7 && card && card.parentElement; i++) {
-        const lines = (card.innerText || "").split("\n").map(clean).filter(Boolean);
-        if (lines.length >= 4) break;
-        card = card.parentElement;
-      }
-      if (!card) continue;
-
-      const text = (card.innerText || "").trim();
-      if (!text || text.length < 60) continue;
-
-      if (seen.has(text)) continue;
-      seen.add(text);
-      candidates.push(text);
-    }
-
-    const promos = [];
-
-    for (const raw of candidates) {
-      const lines = raw
-        .split("\n")
-        .map(clean)
-        .filter(Boolean);
-
-      const tags = lines
-        .filter((l) => knownTags.has(l.toUpperCase()))
-        .map((l) => l.toUpperCase());
-
-      const promoLine = lines.find((l) => /^Promocode\b/i.test(l)) || "";
-      const codeMatch = promoLine.match(/Promocode\s*:?\s*([A-Z0-9]+)/i);
-      const promocode = codeMatch ? codeMatch[1].toUpperCase() : "";
-
-      const title =
-        lines.find(
-          (l) =>
-            l.length >= 6 &&
-            !knownTags.has(l.toUpperCase()) &&
-            !/^Promocode\b/i.test(l)
-        ) || "";
-
-      const titleIdx = lines.indexOf(title);
-      const promoIdx = lines.findIndex((l) => /^Promocode\b/i.test(l));
-
-      const bullets = lines
-        .slice(titleIdx + 1, promoIdx >= 0 ? promoIdx : undefined)
-        .filter((l) => !knownTags.has(l.toUpperCase()))
-        .filter((l) => l.length >= 3);
-
-      if (!title || !promocode) continue;
-
-      promos.push({
-        title,
-        tags: Array.from(new Set(tags)),
-        bullets,
-        promocode
-      });
-    }
-
-    // De-dupe by promocode
-    const byCode = new Map();
-    for (const p of promos) byCode.set(p.promocode, p);
-    return Array.from(byCode.values());
-  });
-
-  await browser.close();
-
-  const payload = {
-    lastUpdatedUtc: new Date().toISOString(),
-    source: SOURCE_URL,
-    promos
-  };
-
-  fs.mkdirSync("data", { recursive: true });
-  fs.writeFileSync(OUT_PATH, JSON.stringify(payload, null, 2), "utf8");
-
-  console.log(`Saved ${promos.length} promos to ${OUT_PATH}`);
-
-  if (promos.length === 0) {
-    throw new Error("Extracted 0 promos. The page likely changed structure or is blocking automation.");
   }
-})();
+
+  for (const el of nodes) {
+    // Walk up to a likely “card” container
+    let card =
+      el.closest("article, li, section") ||
+      el.closest("div");
+
+    // climb a bit if needed
+    for (let i = 0; i < 6 && card && card.parentElement; i++) {
+      const text = clean(card.innerText || "");
+      if (looksLikePromoCard(text)) break;
+      card = card.parentElement;
+    }
+
+    if (!card) continue;
+
+    const text = clean(card.innerText || "");
+    if (!looksLikePromoCard(text)) continue;
+
+    if (seen.has(text)) continue;
+    seen.add(text);
+    candidates.push(text);
+  }
+
+  const promos = [];
+
+  for (const raw of candidates) {
+    const lines = raw
+      .split("\n")
+      .map(clean)
+      .filter(Boolean);
+
+    const tags = lines
+      .filter((l) => knownTags.has(l.toUpperCase()))
+      .map((l) => l.toUpperCase());
+
+    // Promo code line on BetUS looks like: "Promocode JOIN125 COPIED!"
+    const promoLine = lines.find((l) => /^Promocode\b/i.test(l)) || "";
+    const codeMatch = promoLine.match(/Promocode\s*:?\s*([A-Z0-9]+)/i);
+    const promocode = codeMatch ? codeMatch[1].toUpperCase() : "";
+
+    // Title: first non-tag, non-promocode line
+    const title =
+      lines.find(
+        (l) =>
+          l.length >= 6 &&
+          !knownTags.has(l.toUpperCase()) &&
+          !/^Promocode\b/i.test(l)
+      ) || "";
+
+    const titleIdx = lines.indexOf(title);
+    const promoIdx = lines.findIndex((l) => /^Promocode\b/i.test(l));
+
+    const bullets = lines
+      .slice(titleIdx + 1, promoIdx >= 0 ? promoIdx : undefined)
+      .filter((l) => !knownTags.has(l.toUpperCase()))
+      .filter((l) => !/^(Join Now|Bonus Details)/i.test(l))
+      .filter((l) => l.length >= 3);
+
+    if (!title || !promocode) continue;
+
+    promos.push({
+      title,
+      tags: Array.from(new Set(tags)),
+      bullets,
+      promocode
+    });
+  }
+
+  // De-dupe by promocode
+  const byCode = new Map();
+  for (const p of promos) byCode.set(p.promocode, p);
+  return Array.from(byCode.values());
+});
+
 
