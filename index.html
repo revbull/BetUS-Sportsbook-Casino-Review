@@ -354,7 +354,7 @@
       </div>
     </div>
   </footer>
- <script>
+<script>
   (async function () {
     const AFF_URL = "https://record.revmasters.com/_qAqHODIbs_1D3TEmsPWI0WNd7ZgqdRLk/4/";
 
@@ -364,31 +364,99 @@
     const pills = Array.from(document.querySelectorAll(".promo-filters .pill"));
     const countEl = document.getElementById("promo-count");
 
-    if (!updatedEl || !grid || !official || !countEl || pills.length === 0) return;
+    const searchInput = document.getElementById("promo-search");
+    const clearBtn = document.getElementById("promo-clear");
+
+    if (!updatedEl || !grid || !official || !countEl || pills.length === 0 || !searchInput || !clearBtn) return;
 
     let allPromos = [];
     let activeFilter = "all";
+    let query = "";
+    let lastCopiedCode = "";
 
-    function normTag(t) {
-      return String(t || "").trim().toLowerCase();
+    const allowedFilters = new Set(["all", "sign-up", "sportsbook", "casino", "crypto", "re-up"]);
+
+    function toFilterKey(tag) {
+      const t = String(tag || "").trim().toLowerCase();
+      if (t === "re-up" || t === "reup") return "re-up";
+      if (t === "sign-up" || t === "signup") return "sign-up";
+      if (t === "sportsbook") return "sportsbook";
+      if (t === "casino") return "casino";
+      if (t === "crypto") return "crypto";
+      return t;
+    }
+
+    function readStateFromUrl() {
+      const url = new URL(window.location.href);
+      const f = (url.searchParams.get("filter") || "").trim().toLowerCase();
+      const q = (url.searchParams.get("q") || "").trim();
+      return {
+        filter: allowedFilters.has(f) ? f : "all",
+        q
+      };
+    }
+
+    function writeStateToUrl({ filter, q }) {
+      const url = new URL(window.location.href);
+
+      if (!filter || filter === "all") url.searchParams.delete("filter");
+      else url.searchParams.set("filter", filter);
+
+      if (!q) url.searchParams.delete("q");
+      else url.searchParams.set("q", q);
+
+      window.history.replaceState({ filter, q }, "", url.toString());
+    }
+
+    function setActivePill(filter, { updateUrl = true } = {}) {
+      activeFilter = filter;
+
+      for (const btn of pills) {
+        btn.classList.toggle("is-active", btn.dataset.filter === filter);
+      }
+
+      if (updateUrl) writeStateToUrl({ filter: activeFilter, q: query });
+    }
+
+    function setQuery(q, { updateUrl = true } = {}) {
+      query = (q || "").trim();
+      searchInput.value = query;
+
+      if (updateUrl) writeStateToUrl({ filter: activeFilter, q: query });
     }
 
     function matchesFilter(promo, filter) {
       if (filter === "all") return true;
-
-      const tags = Array.isArray(promo.tags) ? promo.tags.map(normTag) : [];
+      const tags = Array.isArray(promo.tags) ? promo.tags.map(toFilterKey) : [];
       return tags.includes(filter);
     }
 
-    function setActivePill(filter) {
-      activeFilter = filter;
-      for (const btn of pills) {
-        btn.classList.toggle("is-active", btn.dataset.filter === filter);
-      }
+    function matchesQuery(promo, q) {
+      if (!q) return true;
+      const needle = q.toLowerCase();
+
+      const title = String(promo.title || "").toLowerCase();
+      const code = String(promo.promocode || "").toLowerCase();
+      const tags = (Array.isArray(promo.tags) ? promo.tags : []).map(toFilterKey).join(" ").toLowerCase();
+      const bullets = (Array.isArray(promo.bullets) ? promo.bullets : []).join(" ").toLowerCase();
+
+      return title.includes(needle) || code.includes(needle) || tags.includes(needle) || bullets.includes(needle);
+    }
+
+    async function tryClipboardWrite(text) {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch {}
+      return false;
     }
 
     function render() {
-      const filtered = allPromos.filter(p => matchesFilter(p, activeFilter));
+      const filtered = allPromos
+        .filter(p => matchesFilter(p, activeFilter))
+        .filter(p => matchesQuery(p, query));
 
       countEl.textContent = `Showing ${filtered.length} of ${allPromos.length}`;
 
@@ -398,19 +466,34 @@
         const card = document.createElement("article");
         card.className = "promo-card";
 
-        const tagsArr = Array.isArray(p.tags) ? p.tags : [];
+        const tagsArr = Array.isArray(p.tags) ? p.tags.map(toFilterKey) : [];
         const bulletsArr = Array.isArray(p.bullets) ? p.bullets : [];
+        const code = (p.promocode || "").trim();
 
-        const tags = tagsArr.map(t => `<span class="tag">${t}</span>`).join("");
+        const tags = tagsArr.map(t => `<span class="tag">${t.toUpperCase()}</span>`).join("");
         const bullets = bulletsArr.map(b => `<li>${b}</li>`).join("");
+
+        // Secondary CTA shown only after the code was copied for this card
+        const copiedClass = (lastCopiedCode && lastCopiedCode === code) ? "is-visible" : "";
 
         card.innerHTML = `
           ${tags ? `<div class="promo-tags">${tags}</div>` : ``}
           <h3>${p.title || ""}</h3>
           ${bullets ? `<ul>${bullets}</ul>` : ``}
-          <div class="promo-code">Promocode: <strong>${(p.promocode || "").trim()}</strong></div>
+
+          <div class="promo-code-row">
+            <div class="promo-code">Promocode: <strong>${code}</strong></div>
+            <button class="copy-btn" type="button" data-copy="${code}">
+              Copy Code
+            </button>
+          </div>
+
           <a class="btn btn-primary btn-block" href="${AFF_URL}" rel="nofollow sponsored noopener" target="_blank">
             Join Now
+          </a>
+
+          <a class="btn btn-ghost btn-block copied-cta ${copiedClass}" href="${AFF_URL}" rel="nofollow sponsored noopener" target="_blank">
+            Open BetUS (Code Copied)
           </a>
         `;
 
@@ -420,8 +503,10 @@
       if (filtered.length === 0) {
         grid.innerHTML = `
           <article class="promo-card promo-card--error">
-            <h3>No promotions in this category</h3>
-            <p class="promo-muted">Try another filter or view the official promotions page.</p>
+            <h3>No matching promotions</h3>
+            <p class="promo-muted">
+              Try a different category or search term, or view the official promotions page.
+            </p>
             <a class="btn btn-primary btn-block" href="${AFF_URL}" rel="nofollow sponsored noopener" target="_blank">
               View Promotions on BetUS
             </a>
@@ -452,23 +537,82 @@
       const promos = Array.isArray(data.promos) ? data.promos : [];
       if (promos.length === 0) throw new Error("promos.json is empty");
 
-      // Normalize tags to match filter keys (lowercase)
-      allPromos = promos.map(p => ({
-        ...p,
-        tags: Array.isArray(p.tags) ? p.tags.map(t => String(t).toLowerCase()) : []
-      }));
+      allPromos = promos;
 
-      official.style.display = "none";
-
-      // Wire pill clicks
+      // Pill clicks
       for (const btn of pills) {
         btn.addEventListener("click", () => {
-          setActivePill(btn.dataset.filter);
+          const f = btn.dataset.filter;
+          if (!allowedFilters.has(f)) return;
+          setActivePill(f);
           render();
         });
       }
 
-      setActivePill("all");
+      // Search input (debounced)
+      let t = null;
+      searchInput.addEventListener("input", () => {
+        window.clearTimeout(t);
+        t = window.setTimeout(() => {
+          setQuery(searchInput.value);
+          render();
+        }, 120);
+      });
+
+      // Clear button
+      clearBtn.addEventListener("click", () => {
+        lastCopiedCode = "";
+        setActivePill("all");
+        setQuery("");
+        render();
+      });
+
+      // Copy button (event delegation so it works after filtering)
+      grid.addEventListener("click", async (e) => {
+        const btn = e.target.closest(".copy-btn");
+        if (!btn) return;
+
+        const code = (btn.getAttribute("data-copy") || "").trim();
+        if (!code) return;
+
+        let ok = await tryClipboardWrite(code);
+        if (!ok) {
+          // fallback
+          window.prompt("Copy this promo code:", code);
+          ok = true;
+        }
+
+        if (ok) {
+          const prev = btn.textContent;
+          btn.textContent = "Copied";
+          btn.classList.add("is-copied");
+
+          // Mark this code as copied so the secondary CTA appears for that card
+          lastCopiedCode = code;
+          render();
+
+          setTimeout(() => {
+            btn.textContent = prev;
+            btn.classList.remove("is-copied");
+          }, 900);
+        }
+      });
+
+      // Back/forward navigation
+      window.addEventListener("popstate", () => {
+        const s = readStateFromUrl();
+        lastCopiedCode = "";
+        setActivePill(s.filter, { updateUrl: false });
+        setQuery(s.q, { updateUrl: false });
+        render();
+      });
+
+      official.style.display = "none";
+
+      // Initial state from URL
+      const initial = readStateFromUrl();
+      setActivePill(initial.filter, { updateUrl: false });
+      setQuery(initial.q, { updateUrl: false });
       render();
     } catch (err) {
       console.error(err);
@@ -479,6 +623,7 @@
     }
   })();
 </script>
+
 
 
 </body>
