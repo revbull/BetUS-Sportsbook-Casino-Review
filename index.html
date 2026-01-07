@@ -316,13 +316,45 @@
   </div>
 </section>
 
-<script>
+
+
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <div class="footer-brand">Sports Bonus Hub</div>
+        <p class="fineprint">
+          Disclaimer: This website contains affiliate links. If you click and take an action, I may receive compensation.
+        </p>
+      </div>
+
+      <div>
+        <div class="footer-title">Responsible Gambling</div>
+        <p class="fineprint">
+          18+ only. Gamble responsibly. If gambling is a problem, seek help in your country/region.
+        </p>
+      </div>
+
+      <div>
+        <div class="footer-title">Legal</div>
+        <p class="fineprint">
+          Offers may be restricted by location and subject to change. Always verify terms on the operator’s site.
+        </p>
+      </div>
+    </div>
+  </footer>
+  <script>
   (async function () {
     const AFF_URL = "https://record.revmasters.com/_qAqHODIbs_1D3TEmsPWI0WNd7ZgqdRLk/4/";
 
     const updatedEl = document.getElementById("promo-updated");
     const grid = document.getElementById("promo-grid");
     const official = document.getElementById("promo-official");
+
+    // If any of these are missing, fail silently (prevents JS from breaking your page)
+    if (!updatedEl || !grid || !official) return;
 
     // Initial loading state (never blank)
     grid.innerHTML = `
@@ -374,8 +406,6 @@
       }
     } catch (err) {
       console.error(err);
-
-      // Hide grid content and show official fallback
       grid.innerHTML = "";
       official.style.display = "block";
       updatedEl.textContent = "Sync status: unavailable";
@@ -383,32 +413,5 @@
   })();
 </script>
 
-
-  </main>
-
-  <footer class="site-footer">
-    <div class="container footer-grid">
-      <div>
-        <div class="footer-brand">Sports Bonus Hub</div>
-        <p class="fineprint">
-          Disclaimer: This website contains affiliate links. If you click and take an action, I may receive compensation.
-        </p>
-      </div>
-
-      <div>
-        <div class="footer-title">Responsible Gambling</div>
-        <p class="fineprint">
-          18+ only. Gamble responsibly. If gambling is a problem, seek help in your country/region.
-        </p>
-      </div>
-
-      <div>
-        <div class="footer-title">Legal</div>
-        <p class="fineprint">
-          Offers may be restricted by location and subject to change. Always verify terms on the operator’s site.
-        </p>
-      </div>
-    </div>
-  </footer>
 </body>
 </html>
