@@ -268,20 +268,50 @@
     </section>
 
     <!-- BONUS -->
-   <section id="bonus" class="section alt">
+  <section id="bonus" class="section alt">
   <div class="container">
     <h2 class="section-title">Latest Bonuses and Promotions</h2>
     <p class="section-subtitle">
-      Auto-synced from BetUS promotions. Always confirm terms after clicking through.
+      Promotions change often. We display the latest synced promos when available, and always provide the official BetUS promotions page via our affiliate link.
       <span id="promo-updated" class="muted"></span>
     </p>
 
+    <!-- If promos.json is present, cards render here -->
     <div id="promo-grid" class="promo-grid"></div>
 
-    <div class="center-actions" style="margin-top:18px;">
-      <a class="btn btn-primary" href="https://record.revmasters.com/_qAqHODIbs_1D3TEmsPWI0WNd7ZgqdRLk/4/" rel="nofollow sponsored noopener" target="_blank">
-        Claim Bonus on BetUS
-      </a>
+    <!-- Always-available official fallback (hidden if promos load successfully) -->
+    <div id="promo-official" class="promo-official" style="display:none;">
+      <div class="promo-official-card">
+        <h3>View Official Promotions (Always Current)</h3>
+        <p class="promo-muted">
+          If synced promos are unavailable, use the button below to view the latest offers and terms directly on BetUS.
+        </p>
+
+        <!-- Optional: drop 1–2 RevMasters banner scripts here (recommended) -->
+        <div class="banner-slot banner-slot--compact">
+          <p class="slot-title">Featured Offer</p>
+
+          <!-- Your existing banner script example -->
+          <script type="text/javascript" src="https://js.revmasters.com/javascript.php?prefix=qAqHODIbs_1D3TEmsPWI0WNd7ZgqdRLk&amp;media=1100&amp;campaign=4"></script>
+
+          <noscript>
+            <div class="noscript">
+              JavaScript is required to display this banner. Use the button below to view promotions.
+            </div>
+          </noscript>
+        </div>
+
+        <a class="btn btn-primary btn-block"
+           href="https://record.revmasters.com/_qAqHODIbs_1D3TEmsPWI0WNd7ZgqdRLk/4/"
+           rel="nofollow sponsored noopener"
+           target="_blank">
+          View Latest Promotions on BetUS
+        </a>
+
+        <p class="fineprint" style="margin-top:10px;">
+          Disclosure: This page contains affiliate links. If you sign up through them, we may earn a commission at no extra cost to you.
+        </p>
+      </div>
     </div>
   </div>
 </section>
@@ -289,34 +319,39 @@
 <script>
   (async function () {
     const AFF_URL = "https://record.revmasters.com/_qAqHODIbs_1D3TEmsPWI0WNd7ZgqdRLk/4/";
+
     const updatedEl = document.getElementById("promo-updated");
     const grid = document.getElementById("promo-grid");
+    const official = document.getElementById("promo-official");
 
-    // Always show something immediately (prevents “blank section”)
+    // Initial loading state (never blank)
     grid.innerHTML = `
       <article class="promo-card promo-card--loading">
-        <h3>Loading latest promotions…</h3>
-        <p class="promo-muted">If this does not load, use the button below to view promotions directly on BetUS.</p>
-        <a class="btn btn-primary btn-block" href="${AFF_URL}" rel="nofollow sponsored noopener" target="_blank">
-          View Promotions on BetUS
-        </a>
+        <h3>Loading promotions…</h3>
+        <p class="promo-muted">
+          If this does not load, we’ll show the official promotions page link automatically.
+        </p>
       </article>
     `;
 
     try {
       const jsonUrl = new URL("data/promos.json", window.location.href).toString();
       const res = await fetch(jsonUrl, { cache: "no-store" });
+
       if (!res.ok) throw new Error(`promos.json fetch failed: HTTP ${res.status}`);
 
       const data = await res.json();
+
       if (data.lastUpdatedUtc) {
         updatedEl.textContent = "Last sync: " + new Date(data.lastUpdatedUtc).toUTCString();
       }
 
       const promos = Array.isArray(data.promos) ? data.promos : [];
-      if (promos.length === 0) throw new Error("promos.json loaded but contains 0 promos");
+      if (promos.length === 0) throw new Error("promos.json is empty");
 
+      // Render promos
       grid.innerHTML = "";
+      official.style.display = "none";
 
       for (const p of promos) {
         const card = document.createElement("article");
@@ -330,29 +365,23 @@
           <h3>${p.title || ""}</h3>
           <ul>${bullets}</ul>
           <div class="promo-code">Promocode: <strong>${p.promocode || ""}</strong></div>
-          <a class="btn btn-primary btn-block" href="${AFF_URL}" rel="nofollow sponsored noopener" target="_blank">Join Now</a>
+          <a class="btn btn-primary btn-block" href="${AFF_URL}" rel="nofollow sponsored noopener" target="_blank">
+            Join Now
+          </a>
         `;
+
         grid.appendChild(card);
       }
     } catch (err) {
       console.error(err);
-      updatedEl.textContent = "Sync status: unavailable";
 
-      grid.innerHTML = `
-        <article class="promo-card promo-card--error">
-          <h3>Latest promotions unavailable on this page</h3>
-          <p class="promo-muted">
-            BetUS may block automated sync from GitHub. Use the button below to view the latest promotions directly.
-          </p>
-          <a class="btn btn-primary btn-block" href="${AFF_URL}" rel="nofollow sponsored noopener" target="_blank">
-            View Promotions on BetUS
-          </a>
-        </article>
-      `;
+      // Hide grid content and show official fallback
+      grid.innerHTML = "";
+      official.style.display = "block";
+      updatedEl.textContent = "Sync status: unavailable";
     }
   })();
 </script>
-
 
 
   </main>
