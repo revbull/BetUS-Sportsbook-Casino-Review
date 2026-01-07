@@ -266,36 +266,72 @@
 <script>
   (async function () {
     const AFF_URL = "https://record.revmasters.com/_qAqHODIbs_1D3TEmsPWI0WNd7ZgqdRLk/4/";
-    const res = await fetch("./data/promos.json", { cache: "no-store" });
-    const data = await res.json();
 
     const updatedEl = document.getElementById("promo-updated");
-    if (data.lastUpdatedUtc) {
-      updatedEl.textContent = "Last sync: " + new Date(data.lastUpdatedUtc).toUTCString();
-    }
-
     const grid = document.getElementById("promo-grid");
-    grid.innerHTML = "";
 
-    for (const p of (data.promos || [])) {
-      const card = document.createElement("article");
-      card.className = "promo-card";
+    // Clean loading state (prevents “empty section” look)
+    grid.innerHTML = `
+      <article class="promo-card promo-card--loading">
+        <h3>Loading latest promotions…</h3>
+        <p class="promo-muted">If this takes more than a few seconds, your browser may be blocking the request.</p>
+      </article>
+    `;
 
-      const tags = (p.tags || []).map(t => `<span class="tag">${t}</span>`).join("");
-      const bullets = (p.bullets || []).map(b => `<li>${b}</li>`).join("");
+    try {
+      // Absolute URL is more reliable on GitHub Pages than relative paths in some edge cases
+      const jsonUrl = new URL("data/promos.json", window.location.href).toString();
+      const res = await fetch(jsonUrl, { cache: "no-store" });
 
-      card.innerHTML = `
-        <div class="promo-tags">${tags}</div>
-        <h3>${p.title}</h3>
-        <ul>${bullets}</ul>
-        <div class="promo-code">Promocode: <strong>${p.promocode}</strong></div>
-        <a class="btn btn-primary btn-block" href="${AFF_URL}" rel="nofollow sponsored noopener" target="_blank">Join Now</a>
+      if (!res.ok) throw new Error(`promos.json fetch failed: HTTP ${res.status}`);
+
+      const data = await res.json();
+
+      if (data.lastUpdatedUtc) {
+        updatedEl.textContent = "Last sync: " + new Date(data.lastUpdatedUtc).toUTCString();
+      }
+
+      const promos = Array.isArray(data.promos) ? data.promos : [];
+      if (promos.length === 0) throw new Error("promos.json loaded but contains 0 promos");
+
+      grid.innerHTML = "";
+
+      for (const p of promos) {
+        const card = document.createElement("article");
+        card.className = "promo-card";
+
+        const tags = (p.tags || []).map(t => `<span class="tag">${t}</span>`).join("");
+        const bullets = (p.bullets || []).map(b => `<li>${b}</li>`).join("");
+
+        card.innerHTML = `
+          <div class="promo-tags">${tags}</div>
+          <h3>${p.title || ""}</h3>
+          <ul>${bullets}</ul>
+          <div class="promo-code">Promocode: <strong>${p.promocode || ""}</strong></div>
+          <a class="btn btn-primary btn-block" href="${AFF_URL}" rel="nofollow sponsored noopener" target="_blank">Join Now</a>
+        `;
+
+        grid.appendChild(card);
+      }
+    } catch (err) {
+      console.error(err);
+
+      updatedEl.textContent = "Sync status: unavailable";
+
+      // Visitor-friendly fallback state (still converts)
+      grid.innerHTML = `
+        <article class="promo-card promo-card--error">
+          <h3>Promotions temporarily unavailable</h3>
+          <p class="promo-muted">
+            Please use the button below to view the latest promotions directly on BetUS.
+          </p>
+          <a class="btn btn-primary btn-block" href="${AFF_URL}" rel="nofollow sponsored noopener" target="_blank">View Promotions on BetUS</a>
+        </article>
       `;
-
-      grid.appendChild(card);
     }
   })();
 </script>
+
 
   </main>
 
