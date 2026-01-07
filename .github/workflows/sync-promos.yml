@@ -1,0 +1,84 @@
+name: Sync BetUS Promos
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *" # daily at 03:17 UTC
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        run: |
+          npm init -y
+          npm i playwright
+          npx playwright install --with-deps chromium
+
+      - name: Run sync
+        run: node scripts/sync-promos.mjs
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if git diff --quiet -- data/promos.json; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create issue if promos changed
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            const data = JSON.parse(fs.readFileSync('data/promos.json', 'utf8'));
+            const updated = data.lastUpdatedUtc || 'unknown';
+            const promos = Array.isArray(data.promos) ? data.promos : [];
+
+            const lines = [];
+            lines.push(`Promotions appear to have changed on BetUS.`);
+            lines.push(``);
+            lines.push(`- Source: ${data.source || 'https://www.betus.com.pa/promotions/'}`);
+            lines.push(`- Sync time (UTC): ${updated}`);
+            lines.push(`- Promo count: ${promos.length}`);
+            lines.push(``);
+            lines.push(`Current promos (title — promocode):`);
+            lines.push(``);
+            for (const p of promos) {
+              const title = (p.title || '').trim();
+              const code = (p.promocode || '').trim();
+              if (title || code) lines.push(`- ${title} — ${code}`);
+            }
+            lines.push(``);
+            lines.push(`Note: Auto-generated. Verify operator terms if needed.`);
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `BetUS promos changed (UTC ${updated})`,
+              body: lines.join('\n')
+            });
+
+      - name: Commit changes (if any)
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "promo-bot"
+          git config user.email "promo-bot@users.noreply.github.com"
+          git add data/promos.json
+          git commit -m "Auto-sync BetUS promos"
+          git push
