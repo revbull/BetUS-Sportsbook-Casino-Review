@@ -640,6 +640,90 @@ h1{
 @media (max-width: 560px){
   .promo-count{ width: 100%; margin-left: 0; }
 }
+.copied-cta{
+  display:none;
+  margin-top: 10px;
+}
+
+.copied-cta.is-visible{
+  display:block;
+}
+.promo-code-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  margin: 10px 0 12px;
+}
+
+.copy-btn{
+  appearance:none;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.80);
+  padding: 8px 10px;
+  border-radius: 14px;
+  font-weight: 900;
+  font-size: 12px;
+  cursor:pointer;
+  white-space: nowrap;
+}
+
+.copy-btn:hover{
+  border-color: rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.95);
+}
+
+.copy-btn.is-copied{
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.30);
+}
+.promo-tools{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  margin: 10px 0 10px;
+  flex-wrap: wrap;
+}
+
+.promo-search{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.03);
+  flex: 1 1 320px;
+  min-width: 260px;
+}
+
+.promo-search-label{
+  color: rgba(255,255,255,0.60);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+#promo-search{
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: rgba(255,255,255,0.92);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+#promo-search::placeholder{
+  color: rgba(255,255,255,0.45);
+  font-weight: 600;
+}
+
+.pill-clear{
+  flex: 0 0 auto;
+}
 
 
 
