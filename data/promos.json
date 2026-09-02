@@ -1,7 +1,13 @@
 {
-  "lastUpdatedUtc": "2026-09-01T08:44:38.854Z",
+  "lastUpdatedUtc": "2026-09-02T07:58:52.282Z",
   "source": "https://www.betus.com.pa/promotions/",
   "promos": [
+    {
+      "title": "200% Bonus On Your First Crypto Deposit 200% Bonus on your First Crypto Deposit Minimum deposit: $100 18X Rollover on Sports",
+      "tags": [],
+      "bullets": [],
+      "promocode": "FIRST200"
+    },
     {
       "title": "75% Sports Crypto Re-up Bonus 75% Sports + 10% Casino Minimum deposit: $10 NO max deposit",
       "tags": [],
@@ -15,10 +21,10 @@
       "promocode": "GET50"
     },
     {
-      "title": "100% Casino Re-up Bonus 100% Casino Re-up Bonus up to $2,000 35X Rollover on Casino Games for Release and Cashout. Minimum deposit: $50",
+      "title": "100% Crypto Re-up Bonus 100% Re-up Bonus up to $1,500 on your next two deposits Minimum deposit: $100 14X Rollover on Sports",
       "tags": [],
       "bullets": [],
-      "promocode": "CASINO100"
+      "promocode": "CRYP2X"
     },
     {
       "title": "10% Cash Bonus + 20% Casino Bonus 10% CASH Bonus + 20% Casino Bonus up to $750 Maximum deposit: $2500 3x rollover will apply on 10% Cash Bonus",
@@ -27,16 +33,10 @@
       "promocode": "RU10CASH"
     },
     {
-      "title": "200% Bonus On Your First Crypto Deposit 200% Bonus on your First Crypto Deposit Minimum deposit: $100 18X Rollover on Sports",
+      "title": "100% Casino Re-up Bonus 100% Casino Re-up Bonus up to $2,000 35X Rollover on Casino Games for Release and Cashout. Minimum deposit: $50",
       "tags": [],
       "bullets": [],
-      "promocode": "FIRST200"
-    },
-    {
-      "title": "100% Crypto Re-up Bonus 100% Re-up Bonus up to $1,500 on your next two deposits Minimum deposit: $100 14X Rollover on Sports",
-      "tags": [],
-      "bullets": [],
-      "promocode": "CRYP2X"
+      "promocode": "CASINO100"
     },
     {
       "title": "20% Crypto Cash Bonus 20% CASH Bonus up to $500 on your Crypto Deposit Maximum deposit: $2,500 Six times(6) rollover will apply on 20% Cash Bonus. Applies to both new and existing accounts.",
